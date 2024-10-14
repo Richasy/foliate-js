@@ -60,7 +60,7 @@ const render = async (page, doc, zoom) => {
     await new pdfjsLib.AnnotationLayer({ page, viewport, div }).render({
         annotations: await page.getAnnotations(),
         linkService: {
-            goToDestination: () => {},
+            goToDestination: () => { },
             getDestinationHash: dest => JSON.stringify(dest),
             addLinkAttributes: (link, url) => link.href = url,
         },
@@ -141,6 +141,8 @@ export const makePDF = async file => {
         const parsed = JSON.parse(href)
         const dest = typeof parsed === 'string'
             ? await pdf.getDestination(parsed) : parsed
+        if (!dest)
+            return null
         const index = await pdf.getPageIndex(dest[0])
         return { index }
     }
@@ -148,6 +150,8 @@ export const makePDF = async file => {
         const parsed = JSON.parse(href)
         const dest = typeof parsed === 'string'
             ? await pdf.getDestination(parsed) : parsed
+        if (!dest)
+            return [null, null]
         const index = await pdf.getPageIndex(dest[0])
         return [index, null]
     }
