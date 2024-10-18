@@ -416,6 +416,7 @@ export class Paginator extends HTMLElement {
         'flow', 'gap', 'margin',
         'max-inline-size', 'max-block-size', 'max-column-count',
     ]
+    publicContainer
     #root = this.attachShadow({ mode: 'closed' })
     #observer = new ResizeObserver(() => this.render())
     #top
@@ -542,6 +543,7 @@ export class Paginator extends HTMLElement {
         this.#top = this.#root.getElementById('top')
         this.#background = this.#root.getElementById('background')
         this.#container = this.#root.getElementById('container')
+        this.publicContainer = this.#container
         this.#header = this.#root.getElementById('header')
         this.#footer = this.#root.getElementById('footer')
 
