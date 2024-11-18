@@ -39,7 +39,7 @@ const getSegmenter = (lang = 'en', granularity = 'word') => {
             const endIndex = strIndex
             const endOffset = end - (sum - strs[strIndex].length)
             yield [(name++).toString(),
-                makeRange(startIndex, startOffset, endIndex, endOffset)]
+            makeRange(startIndex, startOffset, endIndex, endOffset)]
         }
     }
 }
@@ -184,6 +184,12 @@ class ListIterator {
             }
         }
     }
+    set(index) {
+        if (this.#arr[index]) {
+            this.#index = index
+            return this.#f(this.#arr[index])
+        }
+    }
     find(f) {
         const index = this.#arr.findIndex(x => f(x))
         if (index > -1) {
@@ -231,17 +237,18 @@ export class TTS {
             node.parentNode.removeChild(node)
             node = next
         }
-        return this.#serializer.serializeToString(ssml)
+        return this.#serializer.serializeToString(ssml.documentElement)
     }
     start() {
         this.#lastMark = null
         const [doc] = this.#list.first() ?? []
         if (!doc) return this.next()
+        console.log(this.current())
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
     }
     resume() {
-        const [doc] = this.#list.current() ?? []
-        if (!doc) return this.next()
+        const [doc, range] = this.#list.current() ?? []
+        if (range) this.highlight(range.cloneRange())
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
     }
     prev(paused) {
@@ -274,5 +281,24 @@ export class TTS {
             this.#lastMark = mark
             this.highlight(range.cloneRange())
         }
+    }
+    setIndex(index) {
+        this.#list.set(index)
+        return this.resume()
+    }
+    getList() {
+        // from start, loop whole ssml to get list.
+        const list = []
+        let start = this.start();
+        list.push(start);
+        while (true) {
+            let next = this.next();
+            if (!next || next === start) {
+                break;
+            }
+            list.push(next);
+        }
+
+        return list;
     }
 }

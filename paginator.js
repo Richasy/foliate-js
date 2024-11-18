@@ -178,10 +178,7 @@ const getDirection = doc => {
 
 const getBackground = doc => {
     const bodyStyle = doc.defaultView.getComputedStyle(doc.body)
-    return bodyStyle.backgroundColor === 'rgba(0, 0, 0, 0)'
-        && bodyStyle.backgroundImage === 'none'
-        ? doc.defaultView.getComputedStyle(doc.documentElement).background
-        : bodyStyle.background
+    return bodyStyle.background
 }
 
 const makeMarginals = (length, part) => Array.from({ length }, () => {
@@ -455,10 +452,8 @@ export class Paginator extends HTMLElement {
             height: 100%;
         }
         #top {
-            --_gap: 7%;
-            --_margin: 48px;
-            --_max-inline-size: 720px;
-            --_max-block-size: 1440px;
+            --_max-inline-size: 840px;
+            --_max-block-size: 1680px;
             --_max-column-count: 2;
             --_max-column-count-portrait: 1;
             --_max-column-count-spread: var(--_max-column-count);
@@ -493,6 +488,7 @@ export class Paginator extends HTMLElement {
         #background {
             grid-column: 1 / -1;
             grid-row: 1 / -1;
+            display: none;
         }
         #container {
             grid-column: 2 / 5;
@@ -512,9 +508,9 @@ export class Paginator extends HTMLElement {
             grid-column: 3 / 4;
             grid-row: 3;
             align-self: end;
+            display:none;
         }
         #header, #footer {
-            display: grid;
             height: var(--_margin);
         }
         :is(#header, #footer) > * {
