@@ -243,7 +243,6 @@ export class TTS {
         this.#lastMark = null
         const [doc] = this.#list.first() ?? []
         if (!doc) return this.next()
-        console.log(this.current())
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
     }
     resume() {

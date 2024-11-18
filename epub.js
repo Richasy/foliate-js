@@ -939,6 +939,9 @@ ${doc.querySelector('parsererror').innerText}`)
         return doc
     }
     async init() {
+        const encryption = await this.#loadXML("META-INF/encryption.xml");
+        if (encryption) throw new Error('Can not open DRM file');
+
         const $container = await this.#loadXML('META-INF/container.xml')
         if (!$container) throw new Error('Failed to load container file')
 
