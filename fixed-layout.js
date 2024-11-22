@@ -93,13 +93,14 @@ export class FixedLayout extends HTMLElement {
                 this.dispatchEvent(new CustomEvent('load', { detail: { doc, index } }))
                 for (const el of doc.body.querySelectorAll('img.singlePage')) {
                     Object.assign(el.style, {
-                        position: 'unset !important',
-                        height: 'unset !important'
+                        position: 'unset !important'
                     })
                 }
-                for (const el of doc.body.querySelectorAll('.fs>div')) {
+                for (const el of doc.body.querySelectorAll('.fs div')) {
                     Object.assign(el.style, {
-                        width: 'unset !important'
+                        width: 'unset !important',
+                        height: '100vh',
+                        position: 'unset !important'
                     })
                 }
                 const { width, height } = getViewport(doc, this.defaultViewport)
