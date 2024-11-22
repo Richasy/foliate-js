@@ -91,6 +91,17 @@ export class FixedLayout extends HTMLElement {
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
                 this.dispatchEvent(new CustomEvent('load', { detail: { doc, index } }))
+                for (const el of doc.body.querySelectorAll('img.singlePage')) {
+                    Object.assign(el.style, {
+                        position: 'unset !important',
+                        height: 'unset !important'
+                    })
+                }
+                for (const el of doc.body.querySelectorAll('.fs>div')) {
+                    Object.assign(el.style, {
+                        width: 'unset !important'
+                    })
+                }
                 const { width, height } = getViewport(doc, this.defaultViewport)
                 resolve({
                     element, iframe,
