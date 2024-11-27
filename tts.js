@@ -161,6 +161,9 @@ class ListIterator {
             return this.#f(this.#arr[newIndex])
         }
     }
+    begin() {
+        return this.#f(this.#arr[0]);
+    }
     prev() {
         const newIndex = this.#index - 1
         if (this.#arr[newIndex]) {
@@ -188,6 +191,22 @@ class ListIterator {
         if (this.#arr[index]) {
             this.#index = index
             return this.#f(this.#arr[index])
+        }
+    }
+    getIndex(f) {
+        const index = this.#arr.findIndex(x => f(x))
+        if (index > -1) {
+            return index;
+        }
+
+        let arr = [];
+        while (true) {
+            const { done, value } = this.#iter.next()
+            if (done) break
+            arr.push(value)
+            if (f(value)) {
+                return arr.length - 1;
+            }
         }
     }
     find(f) {
@@ -245,6 +264,12 @@ export class TTS {
         if (!doc) return this.next()
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
     }
+    begin() {
+        this.#lastMark = null
+        const [doc] = this.#list.begin() ?? []
+        if (!doc) return this.next()
+        return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
+    }
     resume() {
         const [doc, range] = this.#list.current() ?? []
         if (range) this.highlight(range.cloneRange())
@@ -272,7 +297,12 @@ export class TTS {
                 mark = name
                 break
             }
+
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, mark))
+    }
+    getIndex(range) {
+        return this.#list.getIndex(range_ =>
+            range.compareBoundaryPoints(Range.START_TO_START, range_) <= 0)
     }
     setMark(mark) {
         const range = this.#ranges.get(mark)
