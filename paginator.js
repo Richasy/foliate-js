@@ -225,6 +225,7 @@ class View {
             border: '0',
             display: 'none',
             width: '100%', height: '100%',
+            userSelect: 'none'
         })
         // `allow-scripts` is needed for events because of WebKit bug
         // https://bugs.webkit.org/show_bug.cgi?id=218086
