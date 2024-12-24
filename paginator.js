@@ -763,18 +763,19 @@ export class Paginator extends HTMLElement {
         return Math.round(this.viewSize / this.size)
     }
     scrollBy(dx, dy) {
-        const delta = this.#vertical ? dy : dx
+        const delta = dx
         const element = this.#container
         const { scrollProp } = this
         const [offset, a, b] = this.#scrollBounds
         const rtl = this.#rtl
         const min = rtl ? offset - b : offset - a
         const max = rtl ? offset + a : offset + b
-        element[scrollProp] = Math.max(min, Math.min(max,
-            element[scrollProp] + delta))
+        let sp = this.#vertical ? 'scrollLeft' : scrollProp;
+        element[sp] = Math.max(min, Math.min(max,
+            element[sp] + delta))
     }
     snap(vx, vy) {
-        const velocity = this.#vertical ? vy : vx
+        const velocity = this.#vertical ? -vx : vx
         const [offset, a, b] = this.#scrollBounds
         const { start, end, pages, size } = this
         const min = Math.abs(offset) - a
