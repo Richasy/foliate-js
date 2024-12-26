@@ -767,15 +767,16 @@ export class Paginator extends HTMLElement {
         const element = this.#container
         const { scrollProp } = this
         const [offset, a, b] = this.#scrollBounds
-        const rtl = this.#rtl
+        const rtl = this.bookDir === 'rtl'
         const min = rtl ? offset - b : offset - a
         const max = rtl ? offset + a : offset + b
-        let sp = this.#vertical ? 'scrollLeft' : scrollProp;
+        let sp = this.#vertical || rtl ? 'scrollLeft' : scrollProp;
         element[sp] = Math.max(min, Math.min(max,
             element[sp] + delta))
     }
     snap(vx, vy) {
-        const velocity = this.#vertical ? -vx : vx
+        console.log(this.bookDir);
+        const velocity = this.#vertical || this.bookDir === 'rtl' ? -vx : vx
         const [offset, a, b] = this.#scrollBounds
         const { start, end, pages, size } = this
         const min = Math.abs(offset) - a
