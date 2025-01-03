@@ -775,7 +775,6 @@ export class Paginator extends HTMLElement {
             element[sp] + delta))
     }
     snap(vx, vy) {
-        console.log(this.bookDir);
         const velocity = this.#vertical || this.bookDir === 'rtl' ? -vx : vx
         const [offset, a, b] = this.#scrollBounds
         const { start, end, pages, size } = this
