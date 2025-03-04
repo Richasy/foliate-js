@@ -178,7 +178,10 @@ const getDirection = doc => {
 
 const getBackground = doc => {
     const bodyStyle = doc.defaultView.getComputedStyle(doc.body)
-    return bodyStyle.background
+    return bodyStyle.backgroundColor === 'rgba(0, 0, 0, 0)'
+        && bodyStyle.backgroundImage === 'none'
+        ? doc.defaultView.getComputedStyle(doc.documentElement).background
+        : bodyStyle.background
 }
 
 const makeMarginals = (length, part) => Array.from({ length }, () => {
@@ -248,7 +251,9 @@ class View {
                 // it needs to be visible for Firefox to get computed style
                 this.#iframe.style.display = 'block'
                 const { vertical, rtl } = getDirection(doc)
-                const background = getBackground(doc)
+                this.docBackground = getBackground(doc)
+                doc.body.style.background = 'none'
+                const background = this.docBackground
                 this.#iframe.style.display = 'none'
 
                 this.#vertical = vertical
@@ -610,7 +615,7 @@ export class Paginator extends HTMLElement {
 
         this.#mediaQueryListener = () => {
             if (!this.#view) return
-            this.#background.style.background = getBackground(this.#view.document)
+            this.#replaceBackground(this.#view.docBackground, this.columnCount)
         }
         this.#mediaQuery.addEventListener('change', this.#mediaQueryListener)
     }
@@ -648,14 +653,33 @@ export class Paginator extends HTMLElement {
         this.#container.append(this.#view.element)
         return this.#view
     }
+    #replaceBackground(background, columnCount) {
+        const doc = this.#view?.document
+        const htmlStyle = doc.defaultView.getComputedStyle(doc.documentElement)
+        const themeBgColor = htmlStyle.getPropertyValue('--theme-bg-color')
+        if (background && themeBgColor) {
+            const parsedBackground = background.split(/\s(?=(?:url|rgb|hsl|#[0-9a-fA-F]{3,6}))/)
+            parsedBackground[0] = themeBgColor
+            background = parsedBackground.join(' ')
+        }
+        if (/cover.*fixed|fixed.*cover/.test(background)) {
+            background = background.replace('cover', 'auto 100%').replace('fixed', '')
+        }
+        this.#background.innerHTML = ''
+        this.#background.style.display = 'grid'
+        this.#background.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`
+        for (let i = 0; i < columnCount; i++) {
+            const column = document.createElement('div')
+            column.style.background = background
+            column.style.width = '100%'
+            column.style.height = '100%'
+            this.#background.appendChild(column)
+        }
+    }
     #beforeRender({ vertical, rtl, background }) {
         this.#vertical = vertical
         this.#rtl = rtl
         this.#top.classList.toggle('vertical', vertical)
-
-        // set background to `doc` background
-        // this is needed because the iframe does not fill the whole element
-        this.#background.style.background = background
 
         const { width, height } = this.#container.getBoundingClientRect()
         const size = vertical ? height : width
@@ -705,6 +729,10 @@ export class Paginator extends HTMLElement {
         const columnWidth = (size / divisor) - gap
         this.setAttribute('dir', rtl ? 'rtl' : 'ltr')
 
+        // set background to `doc` background
+        // this is needed because the iframe does not fill the whole element
+        this.columnCount = divisor
+        
         const marginalDivisor = vertical
             ? Math.min(2, Math.ceil(width / maxInlineSize))
             : divisor
@@ -721,6 +749,9 @@ export class Paginator extends HTMLElement {
         this.feet = feet.map(el => el.children[0])
         this.#header.replaceChildren(...heads)
         this.#footer.replaceChildren(...feet)
+        if (background) {
+            this.#replaceBackground(background, this.columnCount)
+        }
 
         return { height, width, margin, gap, columnWidth }
     }
@@ -1086,8 +1117,9 @@ export class Paginator extends HTMLElement {
         } else $style.textContent = styles
 
         // NOTE: needs `requestAnimationFrame` in Chromium
-        requestAnimationFrame(() =>
-            this.#background.style.background = getBackground(this.#view.document))
+        requestAnimationFrame(() => {
+            this.#replaceBackground(this.#view.docBackground, this.columnCount)
+        })
 
         // needed because the resize observer doesn't work in Firefox
         this.#view?.document?.fonts?.ready?.then(() => this.#view.expand())
