@@ -119,7 +119,6 @@ const getVisibleRange = (doc, start, end, mapRect) => {
     // we're only interested in the first and last visible nodes
     const from = nodes[0] ?? doc.body
     const to = nodes[nodes.length - 1] ?? from
-
     // find the offset at which visibility changes
     const startOffset = from.nodeType === 1 ? 0
         : bisectNode(doc, from, (a, b) => {
@@ -1057,6 +1056,9 @@ export class Paginator extends HTMLElement {
     }
     get atEnd() {
         return this.#adjacentIndex(1) == null && this.page >= this.pages - 2
+    }
+    get lastVisibleRange() {
+        return this.#lastVisibleRange
     }
     #adjacentIndex(dir) {
         for (let index = this.#index + dir; this.#canGoToIndex(index); index += dir)
