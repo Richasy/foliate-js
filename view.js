@@ -302,6 +302,7 @@ export class View extends HTMLElement {
     this.renderer.addEventListener("create-overlayer", (e) =>
       e.detail.attach(this.#createOverlayer(e.detail))
     );
+    console.log(book);
     this.renderer.open(book);
     this.#root.append(this.renderer);
 
