@@ -755,7 +755,6 @@ class Loader {
     async loadItem(item, parents = []) {
         if (!item) return null
         const { href, mediaType } = item
-
         const isScript = MIME.JS.test(item.mediaType)
         if (isScript && !this.allowScript) return null
 
@@ -773,7 +772,34 @@ class Loader {
         if (isExternal(href)) return href
         const path = resolveURL(href, base)
         const item = this.manifest.find(item => item.href === path)
-        if (!item) return href
+        if (!item) {
+            if (href.startsWith("image")) {
+                const ext = href.split('.').pop().toLowerCase()
+                let mediaType = '';
+                switch (ext) {
+                    case 'jpg':
+                    case 'jpeg':
+                        mediaType = "image/jpeg";
+                        break;
+                    case 'png':
+                        mediaType = "image/png";
+                        break;
+                    case 'gif':
+                        mediaType = "image/gif";
+                        break;
+                    case 'svg':
+                        mediaType = "image/svg+xml";
+                        break;
+                    default:
+                        mediaType = "application/octet-stream"; // ƒ¨»œ¿‡–Õ
+                }
+
+                return this.loadItem({ href: path, mediaType }, parents.concat(base))
+            }
+            else {
+                return href;
+            }
+        }
         return this.loadItem(item, parents.concat(base))
     }
     async loadReplaced(item, parents = []) {
