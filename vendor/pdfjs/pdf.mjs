@@ -14068,7 +14068,8 @@ class AnnotationElement {
         parentRect: data.rect,
         borderStyle: 0,
         id: `popup_${data.id}`,
-        rotation: data.rotation
+            rotation: data.rotation,
+        hidden: true
       },
       parent: this.parent,
       elements: [this]
@@ -16148,7 +16149,7 @@ class AnnotationLayer {
           elements.push(element);
         }
       }
-      const rendered = element.render();
+        const rendered = element.render();
       if (data.hidden) {
         rendered.style.visibility = "hidden";
       }

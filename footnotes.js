@@ -16,7 +16,7 @@ const isFootnoteReference = a => {
     const types = getTypes(a)
     const roles = getRoles(a)
     return {
-        yes: refRoles.some(r => roles.has(r)) || refTypes.some(t => types.has(t)),
+        yes: refRoles.some(r => roles.has(r)) || refTypes.some(t => types.has(t)) || a.className.includes('duokan-footnote'),
         maybe: () => !types.has('backlink') && !roles.has('doc-backlink')
             && (isSuper(a) || a.children.length === 1 && isSuper(a.children[0])
             || isSuper(a.parentElement)),

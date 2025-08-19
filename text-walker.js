@@ -10,8 +10,11 @@ const walkRange = (range, walker) => {
 
 const walkDocument = (_, walker) => {
     const nodes = []
-    for (let node = walker.nextNode(); node; node = walker.nextNode())
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        console.log(node);
         nodes.push(node)
+    }
+
     return nodes
 }
 
