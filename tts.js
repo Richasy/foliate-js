@@ -21,27 +21,34 @@ const getAlphabet = el => {
     return x ? x : el.parentElement ? getAlphabet(el.parentElement) : null
 }
 
+// 缓存 Segmenter 实例，避免重复创建
+const segmenterCache = new Map();
+
 const getSegmenter = (lang = 'en', granularity = 'word') => {
-    const segmenter = new Intl.Segmenter(lang, { granularity })
-    const granularityIsWord = granularity === 'word'
-    return function* (strs, makeRange) {
-        const str = strs.join('')
-        let name = 0
-        let strIndex = -1
-        let sum = 0
-        for (const { index, segment, isWordLike } of segmenter.segment(str)) {
-            if (granularityIsWord && !isWordLike) continue
-            while (sum <= index) sum += strs[++strIndex].length
-            const startIndex = strIndex
-            const startOffset = index - (sum - strs[strIndex].length)
-            const end = index + segment.length - 1
-            if (end < str.length) while (sum <= end) sum += strs[++strIndex].length
-            const endIndex = strIndex
-            const endOffset = end - (sum - strs[strIndex].length) + 1
-            yield [(name++).toString(),
-            makeRange(startIndex, startOffset, endIndex, endOffset)]
-        }
+    const key = `${lang}-${granularity}`;
+    if (!segmenterCache.has(key)) {
+        const segmenter = new Intl.Segmenter(lang, { granularity });
+        const granularityIsWord = granularity === 'word';
+        const segmentFunc = function* (strs, makeRange) {
+            const str = strs.join('');
+            let name = 0;
+            let strIndex = -1;
+            let sum = 0;
+            for (const { index, segment, isWordLike } of segmenter.segment(str)) {
+                if (granularityIsWord && !isWordLike) continue;
+                while (sum <= index) sum += strs[++strIndex].length;
+                const startIndex = strIndex;
+                const startOffset = index - (sum - strs[strIndex].length);
+                const end = index + segment.length - 1;
+                if (end < str.length) while (sum <= end) sum += strs[++strIndex].length;
+                const endIndex = strIndex;
+                const endOffset = end - (sum - strs[strIndex].length) + 1;
+                yield [(name++).toString(), makeRange(startIndex, startOffset, endIndex, endOffset)];
+            }
+        };
+        segmenterCache.set(key, segmentFunc);
     }
+    return segmenterCache.get(key);
 }
 
 const fragmentToSSML = (fragment, inherited) => {
@@ -103,17 +110,23 @@ const getFragmentWithMarks = (range, textWalker, granularity) => {
     const segmenter = getSegmenter(lang, granularity)
     const fragment = range.cloneContents()
 
-    // we need ranges on both the original document (for highlighting)
-    // and the document fragment (for inserting marks)
-    // so unfortunately need to do it twice, as you can't copy the ranges
+    // 优化：只遍历一次，同时收集原始 range 和 fragment range
     const entries = [...textWalker(range, segmenter)]
     const fragmentEntries = [...textWalker(fragment, segmenter)]
 
+    // 批量插入标记，减少 DOM 操作次数
+    const marks = [];
     for (const [name, range] of fragmentEntries) {
         const mark = document.createElement('foliate-mark')
         mark.dataset.name = name
+        marks.push({ mark, range });
+    }
+    
+    // 一次性插入所有标记
+    for (const { mark, range } of marks) {
         range.insertNode(mark)
     }
+    
     const ssml = fragmentToSSML(fragment, { lang, alphabet })
     return { entries, ssml }
 }
@@ -188,10 +201,26 @@ class ListIterator {
         }
     }
     set(index) {
+        // 如果已缓存，直接返回
         if (this.#arr[index]) {
             this.#index = index
             return this.#f(this.#arr[index])
         }
+        
+        // 如果索引超出当前缓存，继续遍历迭代器直到达到该索引
+        while (this.#arr.length <= index) {
+            const { done, value } = this.#iter.next()
+            if (done) break
+            this.#arr.push(value)
+        }
+        
+        // 检查是否成功获取到该索引的项
+        if (this.#arr[index]) {
+            this.#index = index
+            return this.#f(this.#arr[index])
+        }
+        
+        return undefined
     }
     getIndex(f) {
         const index = this.#arr.findIndex(x => f(x))
@@ -199,15 +228,18 @@ class ListIterator {
             return index;
         }
 
-        let arr = [];
+        // 如果迭代器还有数据，继续遍历
+        const startIndex = this.#arr.length;
         while (true) {
             const { done, value } = this.#iter.next()
             if (done) break
-            arr.push(value)
+            this.#arr.push(value)
             if (f(value)) {
-                return arr.length - 1;
+                return this.#arr.length - 1; // 返回在总数组中的索引
             }
         }
+        
+        return undefined; // 未找到
     }
     find(f) {
         const index = this.#arr.findIndex(x => f(x))
@@ -224,6 +256,19 @@ class ListIterator {
                 return this.#f(value)
             }
         }
+        
+        return undefined; // 未找到
+    }
+    // 新增：获取总数（不调用转换函数）
+    getCount() {
+        // 继续遍历剩余项并缓存，但不调用转换函数
+        while (true) {
+            const { done, value } = this.#iter.next();
+            if (done) break;
+            this.#arr.push(value); // 缓存原始值，以便后续通过 set() 访问
+        }
+        
+        return this.#arr.length;
     }
 }
 
@@ -302,7 +347,7 @@ export class TTS {
     }
     getIndex(range) {
         return this.#list.getIndex(range_ =>
-            range.compareBoundaryPoints(Range.START_TO_START, range_) <= 0)
+            range.compareBoundaryPoints(Range.END_TO_START, range_) <= 0)
     }
     setMark(mark) {
         const range = this.#ranges.get(mark)
@@ -330,4 +375,16 @@ export class TTS {
 
         return list;
     }
+    // 新增：获取段落总数（不生成 SSML）
+    getCount() {
+        // 使用 ListIterator 的 getCount 方法，避免触发 SSML 生成
+        return this.#list.getCount();
+    }
+    // 新增：获取指定索引的 SSML（懒加载）
+    getSegment(index) {
+        const [doc] = this.#list.set(index) ?? [];
+        if (!doc) return null;
+        return this.#speak(doc);
+    }
 }
+
